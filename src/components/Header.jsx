@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useRef, useState } from 'react'
 import { useCart } from '../context/CartContext.jsx'
+import { useAuth } from '../context/AuthContext.jsx'
 
 // Keeps a hover-triggered panel open briefly after the mouse leaves, so
 // crossing the gap between a trigger and the panel below it doesn't close it.
@@ -150,6 +151,42 @@ function BagOverlay({ onClose }) {
   )
 }
 
+function AccountMenu() {
+  const { user, signOut } = useAuth()
+  const { open, show, hide } = useHoverDelay()
+
+  if (!user) {
+    return (
+      <Link to="/login" className="icon-button">
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      </Link>
+    )
+  }
+
+  return (
+    <div className="relative" onMouseEnter={show} onMouseLeave={hide}>
+      <button className="icon-button">
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-pink-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full mt-2 w-56 bg-white shadow-lg rounded-lg border border-gray-200 z-50 p-4">
+          <p className="text-sm text-gray-500 mb-3 truncate">{user.email}</p>
+          <button
+            onClick={signOut}
+            className="w-full text-left text-sm text-red-600 hover:underline"
+          >
+            Sign Out
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function Header() {
   const { open: bagOpen, show: showBag, hide: hideBag, setOpen: setBagOpen } = useHoverDelay()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -187,11 +224,7 @@ export default function Header() {
             {bagOpen && <BagOverlay onClose={() => setBagOpen(false)} />}
           </div>
 
-          <Link to="/account" className="icon-button">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </Link>
+          <AccountMenu />
 
           <button
             className="md:hidden icon-button"

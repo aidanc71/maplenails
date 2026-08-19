@@ -1,14 +1,45 @@
-import { Link } from 'react-router-dom'
+import { useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { useCart } from '../context/CartContext.jsx'
+import { useAuth } from '../context/AuthContext.jsx'
+import { createCheckoutSession } from '../lib/api.js'
 
 const SHIPPING_FLAT_RATE = 4.99
 const FREE_SHIPPING_THRESHOLD = 50
 
 export default function Cart() {
   const { items, removeFromCart, setQuantity, total } = useCart()
+  const { user, session } = useAuth()
+  const navigate = useNavigate()
+  const [redirecting, setRedirecting] = useState(false)
+  const [error, setError] = useState('')
 
   const shipping = items.length === 0 || total >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FLAT_RATE
   const grandTotal = total + shipping
+
+  async function handleCheckout() {
+    if (!user) {
+      navigate('/login')
+      return
+    }
+
+    setRedirecting(true)
+    setError('')
+    try {
+      const { url } = await createCheckoutSession(
+        items.map((item) => ({
+          productId: item.productId,
+          size: item.size,
+          quantity: item.quantity,
+        })),
+        session.access_token
+      )
+      window.location.href = url // Redirect to Stripe's hosted checkout page
+    } catch (err) {
+      setError(err.message || 'Failed to start checkout')
+      setRedirecting(false)
+    }
+  }
 
   return (
     <div className="container mx-auto px-4 py-12 max-w-3xl">
@@ -88,8 +119,20 @@ export default function Cart() {
               <span>${grandTotal.toFixed(2)}</span>
             </div>
 
-            <button className="w-full mt-4 bg-pink-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-pink-700 transition-colors duration-200">
-              Checkout (coming in Milestone 5)
+            {error && <p className="text-red-600 text-sm">{error}</p>}
+
+            {!user && (
+              <p className="text-sm text-gray-500">
+                <Link to="/login" className="text-pink-600 hover:underline">Sign in</Link> to place your order.
+              </p>
+            )}
+
+            <button
+              onClick={handleCheckout}
+              disabled={redirecting}
+              className="w-full mt-4 bg-pink-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-pink-700 transition-colors duration-200 disabled:opacity-60"
+            >
+              {redirecting ? 'Redirecting to checkout...' : user ? 'Place Order' : 'Sign In to Checkout'}
             </button>
           </div>
         </>

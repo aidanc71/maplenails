@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { products } from '../data/products.js'
+import { fetchProducts } from '../lib/api.js'
 import ProductCard from '../components/ProductCard.jsx'
 import FilterBar from '../components/FilterBar.jsx'
 
@@ -8,6 +8,17 @@ export default function Home() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [selectedStyle, setSelectedStyle] = useState(searchParams.get('style') || 'all')
   const [priceSort, setPriceSort] = useState('none')
+
+  const [products, setProducts] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    fetchProducts()
+      .then(setProducts)
+      .catch(() => setError('Could not load products. Is the backend server running?'))
+      .finally(() => setLoading(false))
+  }, [])
 
   // Keep local state in sync if the URL changes (e.g. clicking a nav link
   // while already on the homepage).
@@ -24,6 +35,11 @@ export default function Home() {
     }
   }
 
+  const styles = useMemo(
+    () => [...new Set(products.map((p) => p.style))].sort(),
+    [products]
+  )
+
   const visibleProducts = useMemo(() => {
     let result = products
 
@@ -38,27 +54,35 @@ export default function Home() {
     }
 
     return result
-  }, [selectedStyle, priceSort])
+  }, [selectedStyle, priceSort, products])
 
   return (
     <div className="container mx-auto px-4 py-12">
       <h1 className="text-2xl font-bold text-gray-800 mb-6 text-center">Our Press-On Collection</h1>
 
-      <FilterBar
-        selectedStyle={selectedStyle}
-        onStyleChange={handleStyleChange}
-        priceSort={priceSort}
-        onPriceSortChange={setPriceSort}
-      />
+      {loading && <p className="text-center text-gray-600">Loading products...</p>}
+      {error && <p className="text-center text-red-600">{error}</p>}
 
-      {visibleProducts.length === 0 ? (
-        <p className="text-center text-gray-600">No products match that filter.</p>
-      ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
-          {visibleProducts.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
+      {!loading && !error && (
+        <>
+          <FilterBar
+            styles={styles}
+            selectedStyle={selectedStyle}
+            onStyleChange={handleStyleChange}
+            priceSort={priceSort}
+            onPriceSortChange={setPriceSort}
+          />
+
+          {visibleProducts.length === 0 ? (
+            <p className="text-center text-gray-600">No products match that filter.</p>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
+              {visibleProducts.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          )}
+        </>
       )}
     </div>
   )

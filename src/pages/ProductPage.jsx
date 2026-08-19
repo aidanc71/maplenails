@@ -1,17 +1,36 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { getProductById } from '../data/products.js'
+import { fetchProduct } from '../lib/api.js'
 import { useCart } from '../context/CartContext.jsx'
 
 export default function ProductPage() {
   const { id } = useParams()
-  const product = getProductById(id)
   const { addToCart } = useCart()
-  const [mainImage, setMainImage] = useState(product?.image)
+
+  const [product, setProduct] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [mainImage, setMainImage] = useState(null)
   const [selectedSize, setSelectedSize] = useState(null)
   const [quantity, setQuantity] = useState(1)
   const [justAdded, setJustAdded] = useState(false)
   const [sizeError, setSizeError] = useState(false)
+
+  useEffect(() => {
+    setLoading(true)
+    fetchProduct(id).then((p) => {
+      setProduct(p)
+      setMainImage(p?.image ?? null)
+      setLoading(false)
+    })
+  }, [id])
+
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 py-12 text-center">
+        <p className="text-gray-600">Loading...</p>
+      </div>
+    )
+  }
 
   if (!product) {
     return (
